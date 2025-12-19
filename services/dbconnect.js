@@ -19,9 +19,9 @@ exports.CheckConnection = () => {
   });
 };
 
-exports.Query= (sql) => {
+exports.Query= (sql, params = []) => {
   return new Promise((resolve, reject) => {
-    connection.query(sql, (error, results) => {
+    connection.query(sql, params, (error, results) => {
       if (error) {
         // logger.error(error);
         reject(error);

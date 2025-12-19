@@ -3,7 +3,8 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
-var session = require('express-session');
+const auth = require('./middleware/auth');
+require('dotenv').config();
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
@@ -29,25 +30,23 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// middleware
-app.use(session({
-  secret: '1234',
-  resave: false,
-  saveUninitialized: true,
-  cookie: { secure: false }
-}));
 
+// public routes
+// users temporary
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
-app.use('/memberships', membershipsRouter);
-app.use('/admin', adminRouter);
-app.use('/attendance', attendanceRouter);
+// app.use('/users', usersRouter);
 app.use('/auth', authRouter);
-app.use('/equipment', equipmentRouter);
+
+// private routes
+app.use('/admin', adminRouter);
+app.use('/users', auth, usersRouter);
+app.use('/memberships', membershipsRouter);
+app.use('/attendance', attendanceRouter);
 app.use('/payments', paymentsRouter);
 app.use('/rewards', rewardsRouter);
 app.use('/sessions', sessionsRouter);
 app.use('/vouchers', vouchersRouter);
+app.use('/equipment', equipmentRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
