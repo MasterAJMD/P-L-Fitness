@@ -52,15 +52,33 @@ app.use('/rewards', auth, rewardsRouter);
 app.use('/equipment', auth, equipmentRouter);
 
 // DAILY POINT IN ATTENDANCE RESET => PASS POINTS TO REWARD POINTS
-// cron.schedule('0 0 * * *', async () => {
-//   try {
-//     console.log ('Daily points reset STARTED');
-//     await mysql.Query('TRUNCATE TABLE master_reward_points');
-//     console.log("Daily points reset COMPLETE");
-//   } catch (error) {
-//     console.error("RESET FAILED: ", error);
-//   }
-// });
+cron.schedule('0 0 * * *', async () => {
+  try {
+    await mysql.Query(`
+      UPDATE master_attendance
+      SET ma_pointsEarned = 0
+      WHERE ma_checkout >= DATE_SUB(NOW(), INTERVAL 1 DAY)`);
+    console.log("Daily points reset");
+  } catch (error) {
+    console.error("RESET FAILED: ", error);
+  }
+});
+
+// WEEKLY POINT IN ATTENDANCE => SUNDAY MIDNIGHT
+cron.schedule('0 0 * * 0', async ()=> {
+  try {
+      
+    await mysql.Query(`
+      UPDATE master_attendance
+      SET ma_pointsEarned = 0
+      WHERE ma_checkout >= DATE_SUB(NOW(), INTERVAL 7 DAY)`);
+
+    console.log("Weekly points reset");
+
+  } catch (error) {
+    console.error("RESET FAILED: ", error);
+  }
+});
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

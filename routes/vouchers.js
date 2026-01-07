@@ -18,6 +18,7 @@ router.get("/load", async (req, res)=> {
       mv_description,
       mv_discountType,
       mv_value,
+      mv_pointsRequired,
       mv_minSpend,
       mv_maxUses,
       mv_useCount,

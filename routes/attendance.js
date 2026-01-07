@@ -10,6 +10,12 @@ router.get('/', function(req, res, next) {
 
 router.get("/load", async (req, res)=> {
   try {
+
+    if (!req.user?.id) {
+      return res.status(401).json({
+        message: "Authentication required (Bearer token)"
+      });
+    }
     
     const sql=`
     SELECT
@@ -143,11 +149,9 @@ router.put("/checkout", async (req, res)=> {
        AND ma_deleted = 0`,
        [mu_id]
     );
+    
     const pointsEarnedToday = todayTotal[0]?.totalToday;
-
-    // MATH BETWEEN POINTS
     const remainingPoints = 120 - pointsEarnedToday;
-    const pointsThisWorkout = Math.min(duration, remainingPoints, 120);
 
     if (remainingPoints <= 0) {
       return res.status(403).json ({
@@ -155,6 +159,28 @@ router.put("/checkout", async (req, res)=> {
         data: {pointsToday: pointsEarnedToday}
       });
     }
+
+    // CHECK WEEKLY POINT
+    const weekTotal = await mysql.Query(`
+      SELECT COALESCE(SUM(ma_pointsEarned), 0) AS totalWeek
+      FROM master_attendance
+      WHERE mu_id = ?
+      AND ma_checkout IS NOT NULL
+      AND YEARWEEK(ma_checkout) = YEARWEEK(NOW())
+      AND ma_deleted = 0`, [mu_id]);
+
+    const pointsEarnedWeek = weekTotal[0]?.totalWeek;
+    const weeklyRemaining = 600 - pointsEarnedWeek;
+
+    if (weeklyRemaining <= 0) {
+      return res.status(403).json({
+        message: "Weekly points cap (600) reached",
+        data: {pointsThisWeek: pointsEarnedWeek}
+      });
+    }
+
+    // MATH BETWEEN POINTS
+    const pointsThisWorkout = Math.min(duration, remainingPoints, weeklyRemaining, 120);
 
     // INITIALIZE SQL
     const sql =`
@@ -180,7 +206,9 @@ router.put("/checkout", async (req, res)=> {
         duration_minutes: duration,
         points_earned: pointsThisWorkout,
         pointsToday: pointsEarnedToday + pointsThisWorkout,
-        daily_remaining: remainingPoints - pointsThisWorkout
+        daily_remaining: remainingPoints - pointsThisWorkout,
+        pointsThisWeek: pointsEarnedWeek,
+        weekly_remaining: weeklyRemaining
       }
     });
 
@@ -232,6 +260,13 @@ router.put("/delete", async (req, res)=> {
     });
 
   } catch (error) {
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        message: "Duplicated Entry",
+        data: error
+      });
+    };
+    console.error("Error: ", error);
     res.status(500).json ({
       message: "Server Error (500)",
       data: error

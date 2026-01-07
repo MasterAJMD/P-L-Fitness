@@ -2,7 +2,6 @@ var express = require('express');
 var router = express.Router();
 const mysql = require('../services/dbconnect.js');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 
 
 /* GET ADMIN PAGE. */
@@ -25,7 +24,7 @@ router.get('/', function(req, res, next) {
 // SEED ADMIN
 router.post("/seed-admin", async (req, res)=> {
   if (process.env.NODE_ENV === 'production') {
-    return req.status(403).json({
+    return res.status(403).json({
       message: "Seed disabled in production"
     });
   }
