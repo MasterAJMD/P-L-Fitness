@@ -4,21 +4,21 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 const auth = require('./middleware/auth');
-require('dotenv').config();
 const cron = require('node-cron');
 const mysql = require('./services/dbconnect.js');
+require('dotenv').config();
 
+var adminRouter = require('./routes/admin.routes.js');
+var attendanceRouter = require('./routes/attendance.routes.js');
+var authRouter = require('./routes/auth.routes.js');
+var equipmentRouter = require('./routes/equipment.routes.js')
 var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
-var membershipsRouter = require('./routes/memberships');
-var adminRouter = require('./routes/admin');
-var attendanceRouter = require('./routes/attendance');
-var authRouter = require('./routes/auth');
-var equipmentRouter = require('./routes/equipment');
-var paymentsRouter = require('./routes/payments');
-var rewardsRouter = require('./routes/rewards');
-var sessionsRouter = require('./routes/sessions');
-var vouchersRouter = require('./routes/vouchers');
+var membershipsRouter = require('./routes/memberships.routes.js');
+var paymentsRouter = require('./routes/payments.routes.js');
+var rewardsRouter = require('./routes/rewards.routes.js');
+var sessionsRouter = require('./routes/sessions.routes.js');
+var usersRouter = require('./routes/users.routes.js');
+var vouchersRouter = require('./routes/vouchers.routes.js');
 
 var app = express();
 
@@ -33,14 +33,14 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-// public routes
+// PUBLIC ROUTES
 app.use('/auth', authRouter); //LOGIN
 app.use('/', indexRouter); // LANDING PAGE
 // app.use('/admin', adminRouter); // FOR SEEDED ADMIN
 // app.use('/users', usersRouter);
 
 
-// protected routes
+// PROTECTED ROUTES
 app.use('/admin', auth, adminRouter);
 app.use('/users', auth, usersRouter);
 app.use('/memberships', auth, membershipsRouter);
@@ -67,14 +67,11 @@ cron.schedule('0 0 * * *', async () => {
 // WEEKLY POINT IN ATTENDANCE => SUNDAY MIDNIGHT
 cron.schedule('0 0 * * 0', async ()=> {
   try {
-      
     await mysql.Query(`
       UPDATE master_attendance
       SET ma_pointsEarned = 0
       WHERE ma_checkout >= DATE_SUB(NOW(), INTERVAL 7 DAY)`);
-
     console.log("Weekly points reset");
-
   } catch (error) {
     console.error("RESET FAILED: ", error);
   }
