@@ -202,26 +202,12 @@ class AdminController {
             }
 
             // PASSWORD VALIDATION
-            if (!password || typeof password !== "string" || password.trim().length < 8) {
-                return res.status(400).json({
-                    message: "Password required and must be at least 8 characters"
-                });
-            }
-
-            // PASSWORD HASHING
             let hashedPassword;
             if (password && password.trim().length >= 8) {
-               hashedPassword = await bcryptjs.hash(password.trim(), 12);
+                hashedPassword = await bcryptjs.hash(password.trim(), 12);
             } else {
-                const user = await mysql.Query(`
-                    SELECT mu_password
-                    FROM master_user
-                    WHERE mu_id = ?
-                    `, [id]);
-                    if (!user.length)
-                        return res.status(404).json({
-                    message: "User not found"
-                });
+                const user = await mysql.Query(`SELECT mu_password FROM master_user WHERE mu_id = ?`, [id]);
+                if (!user.length) return res.status(404).json({ message: "User not found" });
                 hashedPassword = user[0].mu_password;
             }
 

@@ -31,6 +31,13 @@ class UserController {
                 WHERE mu_id = ?
                 `, [req.user.id]);
 
+
+                if (!user.length || !user[0]) {
+                    return res.status(404).json({
+                        message: "User profile not found"
+                    });
+                }
+
                 res.status(200).json({
                     message: "Profile loaded",
                     data: user[0]
@@ -139,7 +146,7 @@ class UserController {
 
             const points = await mysql.Query(`
                 SELECT * FROM master_reward_point
-                WHERE mu_id = ?
+                WHERE mr_userId = ?
                 ORDER BY mr_dateEarned DESC
                 `, [req.user.id]);
 

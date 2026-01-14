@@ -10,6 +10,12 @@ class EquipmentController {
     static async loadEquipment(req, res) {
         try {
             
+            if (!req.user?.id) {
+                return res.status(401).json({
+                    message: "Authentication required (Bearer token)"
+                });
+            }
+
             const sql =`
             SELECT
                 me_id,
@@ -74,7 +80,9 @@ class EquipmentController {
             res.status(201).json({
                 message: "Equipment created successfully",
                 data: {
-                    me_id: result.insertId
+                    equipmentId: result.insertId,
+                    brand,
+                    type
                 }
             });
 

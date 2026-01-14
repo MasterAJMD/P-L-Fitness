@@ -19,9 +19,9 @@ class AttendanceController {
             const sql =`
             SELECT
                 ma.ma_id,
-                ma.mu_id,
+                ma.ma_userId,
                 CONCAT(mu.mu_firstName, ' ', mu.mu_lastName) AS memberName,
-                ma.ms_id,
+                ma.ma_sessionId,
                 ms.ms_sessionName,
                 COALESCE(CONCAT(coach.mu_firstName, ' ', coach.mu_lastName), 'FREE WORKOUT') AS coachName,
                 ma.ma_checkin,
@@ -29,9 +29,9 @@ class AttendanceController {
                 ma.ma_duration,
                 ma.ma_pointsEarned
             FROM master_attendance ma
-            LEFT JOIN master_user mu ON ma.mu_id = mu.mu_id
-            LEFT JOIN master_session ms ON ma.ms_id = ms.ms_id
-            LEFT JOIN master_user coach ON ms.coach_id = coach.mu_id
+            LEFT JOIN master_user mu ON ma.ma_userId = mu.mu_id
+            LEFT JOIN master_session ms ON ma.ma_sessionId = ms.ms_id
+            LEFT JOIN master_user coach ON ms.ms_userId = coach.mu_id
             WHERE ma.ma_deleted = 0
             ORDER BY ma.ma_checkin DESC`;
 
@@ -61,23 +61,23 @@ class AttendanceController {
                 });
             }
 
-            const { mu_id, ms_id } = req.body;
+            const { userId, sessionId } = req.body;
 
             // VALIDATION
-            if (!mu_id) {
+            if (!userId) {
                 return res.status(400).json({
-                    message: "mu_id required"
+                    message: "userId required"
                 });
             }
 
             const sql =`
             INSERT INTO master_attendance
-                (mu_id,
-                ms_id,
+                (ma_userId,
+                ma_sessionId,
                 ma_checkin)
             VALUES (?, ?, NOW())`;
 
-            const result = await mysql.Query(sql, [mu_id, ms_id || null]);
+            const result = await mysql.Query(sql, [userId, sessionId || null]);
             res.status(201).json({
                 message: "Checkin success",
                 data: {
@@ -122,10 +122,10 @@ class AttendanceController {
 
             // FETCH USER ID FROM ATTENDANCE ID
             const attendance = await mysql.Query(`
-                SELECT mu_id FROM master_attendance
+                SELECT ma_userId FROM master_attendance
                 WHERE ma_id = ?`, [ma_id]);
-            const mu_id = attendance[0]?.mu_id;
-            if (!mu_id) {
+            const userId = attendance[0]?.ma_userId;
+            if (!userId) {
                 return res.status(404).json({
                     message: "Attendance not found"
                 });
@@ -149,10 +149,10 @@ class AttendanceController {
             const todayTotal = await mysql.Query(`
                 SELECT COALESCE(SUM(ma_pointsEarned), 0) AS totalToday
                 FROM master_attendance
-                WHERE mu_id = ?
+                WHERE ma_userId = ?
                 AND ma_checkout IS NOT NULL
                 AND DATE(ma_checkout) = CURDATE()
-                AND ma_deleted = 0`, [mu_id]);
+                AND ma_deleted = 0`, [userId]);
             const pointsEarnedToday = todayTotal[0]?.totalToday;
             const remainingPoints = 120 - pointsEarnedToday;
 
@@ -169,10 +169,10 @@ class AttendanceController {
             const weekTotal = await mysql.Query(`
                 SELECT COALESCE(SUM(ma_pointsEarned), 0) AS totalWeek
                 FROM master_attendance
-                WHERE mu_id = ?
+                WHERE ma_userId = ?
                 AND ma_checkout IS NOT NULL
                 AND YEARWEEK(ma_checkout) = YEARWEEK(NOW())
-                AND ma_deleted = 0`, [mu_id]);
+                AND ma_deleted = 0`, [userId]);
             const pointsEarnedWeek = weekTotal[0]?.totalWeek;
             const weeklyRemaining = 600 - pointsEarnedWeek;
 

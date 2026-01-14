@@ -14,14 +14,14 @@ class SessionsController {
             const sql =`
             SELECT
                 ms.ms_id,
-                ms.coach_id,
+                ms.ms_userId,
                 CONCAT(mu.mu_firstName, ' ', mu.mu_lastName) as coachName,
                 ms.ms_sessionName,
                 ms.ms_datetime,
                 ms.ms_capacity,
                 ms.ms_status
             FROM master_session ms
-            LEFT JOIN master_user mu ON ms.coach_id = mu.mu_id
+            LEFT JOIN master_user mu ON ms.ms_userId = mu.mu_id
             -- WHERE mu.mu_status != 'DELETED' -- delete this to see 'DELETED' status
             -- AND mu.mu_status != 'DELETED' -- delete this to see 'DELETED' status
             ORDER BY ms.ms_datetime ASC`;
@@ -52,25 +52,25 @@ class SessionsController {
                 });
             }
 
-            const { coach_id, sessionName, datetime, capacity } = req.body;
+            const { userId, sessionName, datetime, capacity } = req.body;
 
             // VALIDATION
-            if (!coach_id || !sessionName || !datetime || !capacity) {
+            if (!userId || !sessionName || !datetime || !capacity) {
                 return res.status(400).json({
-                    message: "coach_id, sessionName, datetime, capacity required"
+                    message: "userId, sessionName, datetime, capacity required"
                 });
             }
 
             const sql =`
             INSERT INTO master_session
-                (coach_id,
+                (ms_userId,
                 ms_sessionName,
                 ms_datetime,
                 ms_capacity,
                 ms_status)
             VALUES (?, ?, ?, ?, 'ACTIVE')`;
 
-            const result = await mysql.Query(sql, [coach_id, sessionName, datetime, capacity]);
+            const result = await mysql.Query(sql, [userId, sessionName, datetime, capacity]);
 
             res.status(201).json({
                 message: "Session created successfully",

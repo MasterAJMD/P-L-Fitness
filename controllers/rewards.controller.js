@@ -21,7 +21,7 @@ class RewardsController {
             const sql =`
             SELECT COALESCE(SUM(mr_pointsAdded), 0) AS totalRewardPoints
             FROM master_reward_point
-            WHERE mu_id = ?
+            WHERE mr.mr_userId = ?
             AND mr_status = 'ACTIVE'`;
 
             const totalResult = await mysql.Query(sql, [userId]);
@@ -29,19 +29,19 @@ class RewardsController {
             // RECENT REWARD HISTORY
             const sqlHistory =`
             SELECT
-                mr_id,
-                mr_pointsAdded,
-                mr_status,
-                mr_source,
-                mr_dateEarned,
+                mr.mr_id,
+                mr.mr_pointsAdded,
+                mr.mr_status,
+                mr.mr_source,
+                mr.mr_dateEarned,
                 ma.ma_duration,
                 mv.mv_code,
                 CONCAT(mu.mu_firstName, " ", mu.mu_lastName) AS memberName
             FROM master_reward_point mr
-            LEFT JOIN master_attendance ma ON mr.ma_id = ma.ma_id
-            LEFT JOIN master_voucher mv ON mr.mv_id = mv.mv_id
-            LEFT JOIN master_user mu ON mr.mu_id = mu.mu_id
-            WHERE mr.mu_id = ?
+            LEFT JOIN master_attendance ma ON mr.mr_attendanceId = ma.ma_id
+            LEFT JOIN master_voucher mv ON mr.mr_voucherId = mv.mv_id
+            LEFT JOIN master_user mu ON mr.mr_userId = mu.mu_id
+            WHERE mr.mr_userId = ?
             ORDER BY mr_dateEarned DESC LIMIT 10`;
 
             const historyResult = await mysql.Query(sqlHistory, [req.user.id]);
@@ -76,15 +76,15 @@ class RewardsController {
 
             const sql =`
             SELECT
-                mr.mu_id,
+                mr.mr_userId,
                 CONCAT(mu.mu_firstName, " ", mu.mu_lastName) AS memberName,
                 COALESCE(SUM(mr.mr_pointsAdded), 0) AS totalPoints,
                 COUNT(mr.mr_id) AS transactions,
                 MAX(mr.mr_dateEarned) AS lastActivity
             FROM master_reward_point mr
-            LEFT JOIN master_user mu ON mr.mu_id = mu.mu_id
+            LEFT JOIN master_user mu ON mr.mr_userId = mu.mu_id
             WHERE mr.mr_status = 'ACTIVE'
-            GROUP BY mr.mu_id
+            GROUP BY mr.mr_userId
             ORDER BY totalPoints DESC`;
 
             const result = await mysql.Query(sql);
@@ -124,7 +124,7 @@ class RewardsController {
             // CHECK ATTENDANCE + POINTS
             const attendance = await mysql.Query(`
                 SELECT
-                    mu_id,
+                    ma_userId,
                     ma_pointsEarned
                 FROM master_attendance
                 WHERE ma_id = ?
@@ -137,7 +137,7 @@ class RewardsController {
                 });
             }
 
-            const { mu_id, ma_pointsEarned } = attendance[0];
+            const { userId, ma_pointsEarned } = attendance[0];
 
             if(!ma_pointsEarned || ma_pointsEarned <= 0) {
                 return res.status(400).json({
@@ -148,7 +148,7 @@ class RewardsController {
             // CHECK IF ALREADY CONVERTED
             const alreadyConverted = await mysql.Query(`
                 SELECT 1 FROM master_reward_point
-                WHERE ma_id = ?`, [ma_id]);
+                WHERE mr_attendanceId = ?`, [ma_id]);
 
             if (alreadyConverted.length > 0) {
                 return res.status(409).json({
@@ -159,19 +159,19 @@ class RewardsController {
             // INSERT REWARD POINT
             const sql =`
             INSERT INTO master_reward_point
-                (mu_id,
-                ma_id,
+                (mr_userId,
+                mr_attendanceId,
                 mr_pointsAdded,
                 mr_source)
             VALUES (?, ?, ?, 'ATTENDANCE')`;
 
-            const result = await mysql.Query(sql, [mu_id, ma_id, ma_pointsEarned]);
+            const result = await mysql.Query(sql, [userId, ma_id, ma_pointsEarned]);
 
             res.status(201).json({
                 message: "Attendance points converted successfully",
                 data: {
                     ma_id,
-                    mu_id,
+                    userId,
                     pointsConverted: ma_pointsEarned,
                     rewardId: result.insertId
                 }
@@ -211,7 +211,7 @@ class RewardsController {
             const pointsCheck = await mysql.Query(`
                 SELECT COALESCE(SUM(mr_pointsAdded), 0) AS totalPoints
                 FROM master_reward_point
-                WHERE mu_id = ?
+                WHERE mr_userId = ?
                 AND mr_status = 'ACTIVE'`, [userId]);
 
             const userPoints = pointsCheck[0].totalPoints;
@@ -262,7 +262,7 @@ class RewardsController {
                 UPDATE master_reward_point
                 SET
                     mr_status = 'REDEEMED'
-                WHERE mu_id = ?
+                WHERE mr_userId = ?
                 AND mr_status = 'ACTIVE'
                 LIMIT ?`, [userId, mv_pointsRequired]);
 
@@ -271,7 +271,7 @@ class RewardsController {
                 UPDATE master_voucher
                 SET
                     mv_useCount = mv_useCount + 1,
-                    mv_usedBy = ?
+                    mv_userId = ?
                 WHERE mv_id = ?`, [userId, voucherId]);
 
             res.status(200).json({

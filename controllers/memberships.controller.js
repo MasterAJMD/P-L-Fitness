@@ -9,11 +9,11 @@ class MembershipController {
     // GET /memberships/load
     static async loadMemberships(req, res) {
         try {
-            
+
             const sql =`
             SELECT
                 mm.mm_id,
-                mm.mu_id,
+                mm.mm_userId,
                 CONCAT(mu.mu_firstName, ' ', mu.mu_lastName) AS memberName,
                 mm.mm_startDate,
                 mm.mm_endDate,
@@ -23,7 +23,7 @@ class MembershipController {
                 mm.mm_status,
                 mm.mm_totalPaid
             FROM master_membership mm
-            LEFT JOIN master_user mu ON mm.mu_id = mu.mu_id
+            LEFT JOIN master_user mu ON mm.mm_userId = mu.mu_id
             -- WHERE mm.mm_status != 'DELETED' -- delete this to see 'DELETED' status
             -- AND mu.mu_status != 'DELETED' -- delete this to see 'DELETED' status
             ORDER BY mm.mm_startDate ASC`;
@@ -53,19 +53,19 @@ class MembershipController {
                 });
             }
 
-            const { mu_id, startDate, endDate, planType,
+            const { userId, startDate, endDate, planType,
                 price, nextDueDate, status, totalPaid } = req.body;
 
             // VALIDATION
-            if (!mu_id || !startDate || !planType || !price) {
+            if (!userId || !startDate || !planType || !price) {
                 return res.status(400).json({
-                    message: "mu_id, startDate, planType, price required"
+                    message: "userId, startDate, planType, price required"
                 });
             }
 
             const sql =`
             INSERT INTO master_membership
-                (mu_id,
+                (mm_userId,
                 mm_startDate,
                 mm_endDate,
                 mm_planType,
@@ -75,7 +75,7 @@ class MembershipController {
                 mm_totalPaid)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 
-            const result = await mysql.Query(sql, [mu_id, startDate, endDate,
+            const result = await mysql.Query(sql, [userId, startDate, endDate,
                 planType, price, nextDueDate, status, totalPaid]);
             
             res.status(201).json({

@@ -13,24 +13,24 @@ class VouchersController {
             
             const sql =`
             SELECT
-                mv_id,
-                mv_code,
-                mv_description,
-                mv_discountType,
-                mv_value,
-                mv_pointsRequired,
-                mv_minSpend,
-                mv_maxUses,
-                mv_useCount,
-                mv_validFrom,
-                mv_validUntil,
-                mv_status,
-                mv_createdAt,
-                mu.mu_firstName as usedByName
-            FROM master_voucher
-            LEFT JOIN master_user mu ON mv_usedBy = mu.mu_id
+                mv.mv_id,
+                mv.mv_code,
+                mv.mv_description,
+                mv.mv_discountType,
+                mv.mv_value,
+                mv.mv_pointsRequired,
+                mv.mv_minSpend,
+                mv.mv_maxUses,
+                mv.mv_useCount,
+                mv.mv_validFrom,
+                mv.mv_validUntil,
+                mv.mv_status,
+                mv.mv_createdAt,
+                CONCAT(mu.mu_firstName, ' ', mu.mu_lastName) as usedByName
+            FROM master_voucher mv
+            LEFT JOIN master_user mu ON mv.mv_userId = mu.mu_id
             -- WHERE mv_status != 'DEACTIVATED' -- delete to see deleted status
-            ORDER BY mv_id DESC`;
+            ORDER BY mv.mv_id DESC`;
 
             const result = await mysql.Query(sql);
             res.status(200).json({
@@ -218,7 +218,7 @@ class VouchersController {
                     mv_status,
                     mv_validFrom,
                     mv_validUntil,
-                    mv_usedBy,
+                    mv_userId,
                     mv_code
                 FROM master_voucher
                 WHERE mv_id = ?
@@ -254,7 +254,7 @@ class VouchersController {
             }
 
             // PREVENT SAME USER DOUBLE REDEMPTION
-            if (voucher.mv_usedBy === memberId) {
+            if (voucher.mv_userId === memberId) {
                 return res.status(400).json({
                     message: "You already used this voucher"
                 });
@@ -265,7 +265,7 @@ class VouchersController {
                 UPDATE master_voucher
                 SET
                     mv_useCount = mv_useCount + 1,
-                    mv_usedBy = ?
+                    mv_userId = ?
                 WHERE mv_id = ?
                 AND mv_status = 'ACTIVE'
                 AND COALESCE(mv_maxUses, 99999) > mv_useCount
@@ -318,7 +318,7 @@ class VouchersController {
                 UPDATE master_voucher
                 SET
                     mv_useCount = 0,
-                    mv_usedBy = NULL
+                    mv_userId = NULL
                 WHERE mv_id = ?`, [voucherId]);
 
             if (result.affectedRows === 0) {

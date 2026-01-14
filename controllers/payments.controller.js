@@ -14,19 +14,19 @@ class PaymentsController {
             const sql =`
             SELECT
                 mp.mp_id,
-                mp.mu_id,
+                mp.mp_userId,
                 CONCAT(mu.mu_firstName, ' ', mu.mu_lastName) as memberName,
-                mp.mm_id,
+                mp.mp_membershipId,
                 mm.mm_planType,
                 mp.mp_amount,
                 mp.mp_mop,
                 mp.mp_status,
                 mp.mp_paymentDate
             FROM master_payment mp
-            LEFT JOIN master_user mu ON mp.mu_id = mu.mu_id
-            LEFT JOIN master_membership mm ON mp.mm_id = mm.mm_id
+            LEFT JOIN master_user mu ON mp.mp_userId = mu.mu_id
+            LEFT JOIN master_membership mm ON mp.mp_membershipId = mm.mm_id
             -- WHERE mp.mp_status != 'DELETED' -- delete this to see 'DELETED' status
-            -- AND mu.mp_status != 'DELETED' -- delete this to see 'DELETED' status
+            -- AND mu.mu_status != 'DELETED' -- delete this to see 'DELETED' status
             ORDER BY mp.mp_paymentDate DESC`;
 
             const result = await mysql.Query(sql);
@@ -55,12 +55,12 @@ class PaymentsController {
                 });
             }
 
-            const { mm_id, mu_id, amount, mop, status } = req.body;
+            const { membershipId, userId, amount, mop, status } = req.body;
 
             // VALIDATION
-            if (!mm_id || !mu_id || !amount || !mop) {
+            if (!membershipId || !userId || !amount || !mop) {
                 return res.status(400).json({
-                    message: "mm_id, mu_id, amount, mop required",
+                    message: "membershipId, userId, amount, mop required",
                     validMOP: ["CASH", "CREDIT", "DEBIT", "OTHER"],
                     validStatus: ["PAID", "PENDING", "CANCELLED", "REFUNDED"]
                 });
@@ -68,20 +68,20 @@ class PaymentsController {
 
             const sql =`
             INSERT INTO master_payment
-                (mm_id,
-                mu_id,
+                (mp_membershipId,
+                mp_userId,
                 mp_amount,
                 mp_mop,
                 mp_status)
             VALUES (?, ?, ?, ?, ?)`;
 
-            const result = await mysql.Query(sql, [mm_id, mu_id,
+            const result = await mysql.Query(sql, [membershipId, userId,
                 amount, mop, status || "PAID"]);
 
             res.status(201).json({
                 message: "Payment created successfully",
                 data: {
-                    mp_id: result.insertId
+                    id: result.insertId
                 }
             });
 
@@ -138,7 +138,7 @@ class PaymentsController {
                 });
             }
 
-            res.status(200).json ({
+            res.status(200).json({
                 message: "Payment has been updated",
                 affectedRows: result.affectedRows,
                 data: result
