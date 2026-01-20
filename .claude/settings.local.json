@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm start)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(mysql:*)",
+      "Bash(ping:*)",
+      "Bash(cd c:\\\\\\\\Users\\\\\\\\monta\\\\\\\\P-L-Fitness && npm run dev:*)",
+      "Bash(dir:*)",
+      "Bash(Get-Process -Name node)",
+      "Bash(Stop-Process -Force)",
+      "Bash(npm run dev:*)",
+      "Bash(npm run preview:*)",
+      "Bash(npx vite)",
+      "Bash(tree:*)",
+      "Bash(find:*)",
+      "Bash(test:*)",
+      "Bash(npm run build:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

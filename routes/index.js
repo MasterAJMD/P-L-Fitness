@@ -1,6 +1,6 @@
 var express = require('express');
 var router = express.Router();
-const mysql = require('../services/dbconnect.js');
+const mysql = require('../config/database.js');
 
 /* GET HOMEPAGE. */
 router.get('/', function(req, res, next) {

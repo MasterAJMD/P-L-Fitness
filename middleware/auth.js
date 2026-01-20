@@ -1,8 +1,14 @@
 const jwt = require('jsonwebtoken');
 
 module.exports = (req, res, next) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
-  
+  // Check for token in Authorization header first, then fall back to cookies
+  let token = req.header('Authorization')?.replace('Bearer ', '');
+
+  // If no token in header, check cookies
+  if (!token && req.cookies && req.cookies.token) {
+    token = req.cookies.token;
+  }
+
   if (!token) {
     return res.status(401).json({
       message: 'No Token, Access Denied'

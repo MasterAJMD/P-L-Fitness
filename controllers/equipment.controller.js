@@ -1,4 +1,4 @@
-const mysql = require('../services/dbconnect.js');
+const mysql = require('../config/database.js');
 
 class EquipmentController {
     // GET /equipment/ DASHBOARD PAGE
