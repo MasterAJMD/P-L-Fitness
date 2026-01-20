@@ -1,31 +1,36 @@
 const mysql = require("mysql");
 require("dotenv").config();
 
-const connection = mysql.createConnection({
+// Use connection pool instead of single connection for better reliability
+const pool = mysql.createPool({
   host: process.env._HOST_ADMIN,
   user: process.env._USER_ADMIN,
   password: process.env._PASSWORD_ADMIN,
   database: process.env._DATABASE_ADMIN,
-  port: process.env._PORT_ADMIN || 3306,
+  port: process.env._PORT_ADMIN || 4000,
   timezone: "PST",
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: true } : false,
+  connectionLimit: 10,
+  acquireTimeout: 30000,
+  waitForConnections: true,
+  queueLimit: 0
 });
 
 exports.CheckConnection = () => {
-  connection.connect((err) => {
+  pool.getConnection((err, connection) => {
     if (err) {
-      console.error("Error connection to MYSQL database: ", err);
+      console.error("Error connecting to MySQL database: ", err);
       return;
     }
     console.log("MySQL database connection established successfully!");
+    connection.release();
   });
 };
 
-exports.Query= (sql, params = []) => {
+exports.Query = (sql, params = []) => {
   return new Promise((resolve, reject) => {
-    connection.query(sql, params, (error, results) => {
+    pool.query(sql, params, (error, results) => {
       if (error) {
-        // logger.error(error);
         reject(error);
       } else {
         resolve(results);
