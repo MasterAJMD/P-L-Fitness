@@ -22,9 +22,9 @@ class UserController {
             const user = await mysql.Query(`
                 SELECT
                     mu_username,
-                    mu_firstName,
-                    mu_lastName,
-                    mu_phoneNumber,
+                    mu_firstname,
+                    mu_lastname,
+                    mu_phonenumber,
                     mu_email,
                     mu_role
                 FROM master_user
@@ -95,10 +95,10 @@ class UserController {
             const sql =`
             UPDATE master_user
             SET
-                mu_phoneNumber = ?,
+                mu_phonenumber = ?,
                 mu_email = ?,
                 mu_password = ?,
-                mu_updatedById = ?
+                mu_updatedbyid = ?
             WHERE mu_id = ?`;
 
             const result = await mysql.Query(sql, [phoneNumber,
@@ -146,8 +146,8 @@ class UserController {
 
             const points = await mysql.Query(`
                 SELECT * FROM master_reward_point
-                WHERE mr_userId = ?
-                ORDER BY mr_dateEarned DESC
+                WHERE mrp_userid = ?
+                ORDER BY mrp_dateearned DESC
                 `, [req.user.id]);
 
                 res.status(200).json({

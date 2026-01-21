@@ -24,8 +24,8 @@ class AdminController {
                 INSERT IGNORE INTO master_user
                     (mu_username,
                     mu_password,
-                    mu_firstName,
-                    mu_lastName,
+                    mu_firstname,
+                    mu_lastname,
                     mu_role,
                     mu_status)
                 VALUES (?, ?, 'Admin', 'USER', 'ADMIN', 'ACTIVE')
@@ -54,25 +54,25 @@ class AdminController {
                 mu.mu_id,
                 mu.mu_email,
                 mu.mu_username,
-                mu.mu_firstName,
-                mu.mu_lastName,
-                mu.mu_phoneNumber,
+                mu.mu_firstname,
+                mu.mu_lastname,
+                mu.mu_phonenumber,
                 mu.mu_role,
                 mu.mu_specialty,
                 mu.mu_status,
-                mu.mu_createdAt,
-                mu.mu_updatedAt,
+                mu.mu_createdat,
+                mu.mu_updatedat,
 
-                c.mu_firstName AS createdByName,
-                u.mu_firstName AS updatedByName,
-                d.mu_firstName AS deletedByName
+                c.mu_firstname AS createdByName,
+                u.mu_firstname AS updatedByName,
+                d.mu_firstname AS deletedByName
 
             FROM master_user mu
-            LEFT JOIN master_user c ON mu.mu_createdById = c.mu_id
-            LEFT JOIN master_user u ON mu.mu_updatedById = u.mu_id
-            LEFT JOIN master_user d ON mu.mu_deletedById = d.mu_id
+            LEFT JOIN master_user c ON mu.mu_createdbyid = c.mu_id
+            LEFT JOIN master_user u ON mu.mu_updatedbyid = u.mu_id
+            LEFT JOIN master_user d ON mu.mu_deletedbyid = d.mu_id
             WHERE mu.mu_status != 'DELETED' -- delete this comment to see DELETED status
-            ORDER BY mu.mu_createdAt DESC
+            ORDER BY mu.mu_createdat DESC
             `;
 
             const result = await mysql.Query(sql);
@@ -143,13 +143,13 @@ class AdminController {
                 (mu_email,
                 mu_username,
                 mu_password,
-                mu_firstName,
-                mu_lastName,
-                mu_phoneNumber,
+                mu_firstname,
+                mu_lastname,
+                mu_phonenumber,
                 mu_role,
                 mu_specialty,
                 mu_status,
-                mu_createdById)
+                mu_createdbyid)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
             const result = await mysql.Query(sql, [email, username,
@@ -241,14 +241,14 @@ class AdminController {
                 mu_email = ?,
                 mu_username = ?,
                 mu_password = ?,
-                mu_firstName = ?,
-                mu_lastName = ?,
-                mu_phoneNumber = ?,
+                mu_firstname = ?,
+                mu_lastname = ?,
+                mu_phonenumber = ?,
                 mu_role = ?,
                 mu_specialty = ?,
                 mu_status = ?,
-                mu_deletedById = NULL,
-                mu_updatedById = ?
+                mu_deletedbyid = NULL,
+                mu_updatedbyid = ?
             WHERE mu_id = ?`;
 
             const result = await mysql.Query(sql, [email, username, hashedPassword,
@@ -307,14 +307,14 @@ class AdminController {
                 mu_email = CONCAT('DELETED_', mu_id, '@deleted.com'),
                 mu_username = CONCAT('DELETED_', mu_id),
                 mu_password = 'DELETED',
-                mu_firstName = 'DELETED',
-                mu_lastName = 'DELETED',
-                mu_phoneNumber = 'DELETED',
+                mu_firstname = 'DELETED',
+                mu_lastname = 'DELETED',
+                mu_phonenumber = 'DELETED',
                 mu_role = 'DELETED',
                 mu_specialty = 'DELETED',
                 mu_status = 'DELETED',
-                mu_deletedById = ?,
-                mu_deletedAt = NOW()
+                mu_deletedbyid = ?,
+                mu_deletedat = NOW()
             WHERE mu_id = ?`;
 
             const result = await mysql.Query(sql, [req.user.id, id]);
@@ -372,14 +372,14 @@ class AdminController {
                 mu_email = CONCAT('DELETED_', mu_id, '@deleted.com'),
                 mu_username = CONCAT('DELETED_', mu_id),
                 mu_password = 'DELETED',
-                mu_firstName = 'DELETED',
-                mu_lastName = 'DELETED',
-                mu_phoneNumber = 'DELETED',
+                mu_firstname = 'DELETED',
+                mu_lastname = 'DELETED',
+                mu_phonenumber = 'DELETED',
                 mu_role = 'DELETED',
                 mu_specialty = 'DELETED',
                 mu_status = 'DELETED',
-                mu_deletedById = ?,
-                mu_deletedAt = NOW()
+                mu_deletedbyid = ?,
+                mu_deletedat = NOW()
             WHERE mu_id IN (${placeholders})`;
 
             const result = await mysql.Query(sql, [req.user.id, ...ids]);
@@ -508,7 +508,7 @@ class AdminController {
             // Get user emails
             const placeholders = userIds.map(() => '?').join(',');
             const users = await mysql.Query(
-                `SELECT mu_email, mu_firstName FROM master_user WHERE mu_id IN (${placeholders})`,
+                `SELECT mu_email, mu_firstname FROM master_user WHERE mu_id IN (${placeholders})`,
                 userIds
             );
 
@@ -598,8 +598,8 @@ class AdminController {
                     // Insert user
                     const sql = `
                     INSERT INTO master_user
-                        (mu_email, mu_username, mu_password, mu_firstName, mu_lastName,
-                        mu_phoneNumber, mu_role, mu_specialty, mu_status, mu_createdById)
+                        (mu_email, mu_username, mu_password, mu_firstname, mu_lastname,
+                        mu_phonenumber, mu_role, mu_specialty, mu_status, mu_createdbyid)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
                     await mysql.Query(sql, [
@@ -649,9 +649,10 @@ class AdminController {
             }
 
             // Get total members count and growth
+            // Note: TiDB converts column names to lowercase, so we use lowercase here
             const totalMembersResult = await mysql.Query(`
                 SELECT COUNT(*) as total,
-                COALESCE(SUM(CASE WHEN mu_createdAt >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END), 0) as newThisMonth
+                COALESCE(SUM(CASE WHEN mu_createdat >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END), 0) as newThisMonth
                 FROM master_user
                 WHERE mu_status != 'DELETED'
             `);
@@ -660,9 +661,9 @@ class AdminController {
             let activeTodayResult = [{ activeToday: 0 }];
             try {
                 activeTodayResult = await mysql.Query(`
-                    SELECT COUNT(DISTINCT ma_userId) as activeToday
+                    SELECT COUNT(DISTINCT ma_userid) as activeToday
                     FROM master_attendance
-                    WHERE DATE(ma_checkInTime) = CURDATE()
+                    WHERE DATE(ma_checkintime) = CURDATE()
                 `);
             } catch (err) {
                 console.log("Attendance table may not exist:", err.message);
@@ -673,11 +674,11 @@ class AdminController {
             try {
                 revenueResult = await mysql.Query(`
                     SELECT
-                        COALESCE(SUM(CASE WHEN MONTH(mp_createdAt) = MONTH(NOW()) THEN mp_amount ELSE 0 END), 0) as monthlyRevenue,
-                        COALESCE(SUM(CASE WHEN MONTH(mp_createdAt) = MONTH(DATE_SUB(NOW(), INTERVAL 1 MONTH)) THEN mp_amount ELSE 0 END), 0) as lastMonthRevenue
+                        COALESCE(SUM(CASE WHEN MONTH(mp_createdat) = MONTH(NOW()) THEN mp_amount ELSE 0 END), 0) as monthlyRevenue,
+                        COALESCE(SUM(CASE WHEN MONTH(mp_createdat) = MONTH(DATE_SUB(NOW(), INTERVAL 1 MONTH)) THEN mp_amount ELSE 0 END), 0) as lastMonthRevenue
                     FROM master_payment
                     WHERE mp_status = 'PAID'
-                    AND YEAR(mp_createdAt) = YEAR(NOW())
+                    AND YEAR(mp_createdat) = YEAR(NOW())
                 `);
             } catch (err) {
                 console.log("Payment table may not exist:", err.message);
@@ -721,14 +722,14 @@ class AdminController {
             try {
                 revenueTrend = await mysql.Query(`
                     SELECT
-                        DATE_FORMAT(mp_createdAt, '%b') as month,
+                        DATE_FORMAT(mp_createdat, '%b') as month,
                         COALESCE(SUM(mp_amount), 0) as revenue,
-                        COUNT(DISTINCT mp_userId) as members
+                        COUNT(DISTINCT mp_userid) as members
                     FROM master_payment
                     WHERE mp_status = 'PAID'
-                    AND mp_createdAt >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-                    GROUP BY YEAR(mp_createdAt), MONTH(mp_createdAt)
-                    ORDER BY YEAR(mp_createdAt), MONTH(mp_createdAt)
+                    AND mp_createdat >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+                    GROUP BY YEAR(mp_createdat), MONTH(mp_createdat)
+                    ORDER BY YEAR(mp_createdat), MONTH(mp_createdat)
                 `);
             } catch (err) {
                 console.log("Payment table may not exist for revenue trend:", err.message);
@@ -739,12 +740,12 @@ class AdminController {
             try {
                 weeklyAttendance = await mysql.Query(`
                     SELECT
-                        DATE_FORMAT(ma_checkInTime, '%a') as day,
+                        DATE_FORMAT(ma_checkintime, '%a') as day,
                         COUNT(*) as attendance
                     FROM master_attendance
-                    WHERE ma_checkInTime >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-                    GROUP BY DATE(ma_checkInTime), DATE_FORMAT(ma_checkInTime, '%a')
-                    ORDER BY DATE(ma_checkInTime)
+                    WHERE ma_checkintime >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                    GROUP BY DATE(ma_checkintime), DATE_FORMAT(ma_checkintime, '%a')
+                    ORDER BY DATE(ma_checkintime)
                 `);
             } catch (err) {
                 console.log("Attendance table may not exist for weekly data:", err.message);
@@ -754,14 +755,14 @@ class AdminController {
             const recentActivity = await mysql.Query(`
                 SELECT
                     mu_id as id,
-                    CONCAT(mu_firstName, ' ', mu_lastName) as name,
+                    CONCAT(mu_firstname, ' ', mu_lastname) as name,
                     mu_email as email,
-                    mu_createdAt as createdAt,
+                    mu_createdat as createdAt,
                     mu_role as role,
                     'USER_CREATED' as activityType
                 FROM master_user
                 WHERE mu_status != 'DELETED'
-                ORDER BY mu_createdAt DESC
+                ORDER BY mu_createdat DESC
                 LIMIT 10
             `);
 
@@ -820,13 +821,13 @@ class AdminController {
             // Member Acquisition & Growth Metrics
             const memberGrowthData = await mysql.Query(`
                 SELECT
-                    DATE_FORMAT(mu_createdAt, '%Y-%m') as month,
+                    DATE_FORMAT(mu_createdat, '%Y-%m') as month,
                     COUNT(*) as newMembers,
-                    SUM(COUNT(*)) OVER (ORDER BY DATE_FORMAT(mu_createdAt, '%Y-%m')) as cumulativeMembers
+                    SUM(COUNT(*)) OVER (ORDER BY DATE_FORMAT(mu_createdat, '%Y-%m')) as cumulativeMembers
                 FROM master_user
                 WHERE mu_status != 'DELETED'
-                AND mu_createdAt >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
-                GROUP BY DATE_FORMAT(mu_createdAt, '%Y-%m')
+                AND mu_createdat >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+                GROUP BY DATE_FORMAT(mu_createdat, '%Y-%m')
                 ORDER BY month
             `);
 
@@ -835,13 +836,13 @@ class AdminController {
             try {
                 churnData = await mysql.Query(`
                     SELECT
-                        DATE_FORMAT(mu_updatedAt, '%Y-%m') as month,
+                        DATE_FORMAT(mu_updatedat, '%Y-%m') as month,
                         COUNT(*) as churnedMembers,
                         mu_status as status
                     FROM master_user
                     WHERE mu_status IN ('INACTIVE', 'SUSPENDED')
-                    AND mu_updatedAt >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
-                    GROUP BY DATE_FORMAT(mu_updatedAt, '%Y-%m'), mu_status
+                    AND mu_updatedat >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+                    GROUP BY DATE_FORMAT(mu_updatedat, '%Y-%m'), mu_status
                     ORDER BY month
                 `);
             } catch (err) {
@@ -853,14 +854,14 @@ class AdminController {
             try {
                 const historicalRevenue = await mysql.Query(`
                     SELECT
-                        DATE_FORMAT(mp_createdAt, '%Y-%m') as month,
+                        DATE_FORMAT(mp_createdat, '%Y-%m') as month,
                         COALESCE(SUM(mp_amount), 0) as revenue,
-                        COUNT(DISTINCT mp_userId) as payingMembers,
+                        COUNT(DISTINCT mp_userid) as payingMembers,
                         COALESCE(AVG(mp_amount), 0) as avgTransactionValue
                     FROM master_payment
                     WHERE mp_status = 'PAID'
-                    AND mp_createdAt >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
-                    GROUP BY DATE_FORMAT(mp_createdAt, '%Y-%m')
+                    AND mp_createdat >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+                    GROUP BY DATE_FORMAT(mp_createdat, '%Y-%m')
                     ORDER BY month
                 `);
 
@@ -904,15 +905,15 @@ class AdminController {
             try {
                 cohortAnalysis = await mysql.Query(`
                     SELECT
-                        DATE_FORMAT(u.mu_createdAt, '%Y-%m') as cohort,
+                        DATE_FORMAT(u.mu_createdat, '%Y-%m') as cohort,
                         COUNT(DISTINCT u.mu_id) as cohortSize,
-                        COUNT(DISTINCT CASE WHEN a.ma_checkInTime >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN u.mu_id END) as activeNow,
-                        ROUND(COUNT(DISTINCT CASE WHEN a.ma_checkInTime >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN u.mu_id END) * 100.0 / COUNT(DISTINCT u.mu_id), 2) as retentionRate
+                        COUNT(DISTINCT CASE WHEN a.ma_checkintime >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN u.mu_id END) as activeNow,
+                        ROUND(COUNT(DISTINCT CASE WHEN a.ma_checkintime >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN u.mu_id END) * 100.0 / COUNT(DISTINCT u.mu_id), 2) as retentionRate
                     FROM master_user u
-                    LEFT JOIN master_attendance a ON u.mu_id = a.ma_userId
+                    LEFT JOIN master_attendance a ON u.mu_id = a.ma_userid
                     WHERE u.mu_status != 'DELETED'
-                    AND u.mu_createdAt >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
-                    GROUP BY DATE_FORMAT(u.mu_createdAt, '%Y-%m')
+                    AND u.mu_createdat >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+                    GROUP BY DATE_FORMAT(u.mu_createdat, '%Y-%m')
                     ORDER BY cohort DESC
                     LIMIT 12
                 `);
@@ -925,13 +926,13 @@ class AdminController {
             try {
                 attendancePatterns = await mysql.Query(`
                     SELECT
-                        HOUR(ma_checkInTime) as hour,
-                        DATE_FORMAT(ma_checkInTime, '%a') as dayOfWeek,
+                        HOUR(ma_checkintime) as hour,
+                        DATE_FORMAT(ma_checkintime, '%a') as dayOfWeek,
                         COUNT(*) as checkIns,
-                        COUNT(DISTINCT ma_userId) as uniqueMembers
+                        COUNT(DISTINCT ma_userid) as uniqueMembers
                     FROM master_attendance
-                    WHERE ma_checkInTime >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-                    GROUP BY HOUR(ma_checkInTime), DATE_FORMAT(ma_checkInTime, '%a')
+                    WHERE ma_checkintime >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                    GROUP BY HOUR(ma_checkintime), DATE_FORMAT(ma_checkintime, '%a')
                     ORDER BY dayOfWeek, hour
                 `);
             } catch (err) {
@@ -946,20 +947,20 @@ class AdminController {
                         u.mu_role as memberType,
                         COUNT(DISTINCT u.mu_id) as totalMembers,
                         COALESCE(AVG(revenue.totalSpent), 0) as avgLifetimeValue,
-                        COALESCE(AVG(DATEDIFF(NOW(), u.mu_createdAt)), 0) as avgMembershipDays,
+                        COALESCE(AVG(DATEDIFF(NOW(), u.mu_createdat)), 0) as avgMembershipDays,
                         COALESCE(AVG(attendance.totalVisits), 0) as avgVisits
                     FROM master_user u
                     LEFT JOIN (
-                        SELECT mp_userId, SUM(mp_amount) as totalSpent
+                        SELECT mp_userid, SUM(mp_amount) as totalSpent
                         FROM master_payment
                         WHERE mp_status = 'PAID'
-                        GROUP BY mp_userId
-                    ) revenue ON u.mu_id = revenue.mp_userId
+                        GROUP BY mp_userid
+                    ) revenue ON u.mu_id = revenue.mp_userid
                     LEFT JOIN (
-                        SELECT ma_userId, COUNT(*) as totalVisits
+                        SELECT ma_userid, COUNT(*) as totalVisits
                         FROM master_attendance
-                        GROUP BY ma_userId
-                    ) attendance ON u.mu_id = attendance.ma_userId
+                        GROUP BY ma_userid
+                    ) attendance ON u.mu_id = attendance.ma_userid
                     WHERE u.mu_status != 'DELETED'
                     GROUP BY u.mu_role
                 `);
@@ -978,7 +979,7 @@ class AdminController {
                         COALESCE(AVG(mp_amount), 0) as avgAmount
                     FROM master_payment
                     WHERE mp_status = 'PAID'
-                    AND mp_createdAt >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+                    AND mp_createdat >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
                     GROUP BY mp_method
                 `);
             } catch (err) {
@@ -994,11 +995,11 @@ class AdminController {
                         ms_type as sessionType,
                         ms_capacity as capacity,
                         COUNT(a.ma_id) as totalAttendance,
-                        COUNT(DISTINCT a.ma_userId) as uniqueAttendees,
+                        COUNT(DISTINCT a.ma_userid) as uniqueAttendees,
                         ROUND(COUNT(a.ma_id) * 100.0 / NULLIF(ms_capacity, 0), 2) as utilizationRate
                     FROM master_session s
-                    LEFT JOIN master_attendance a ON s.ms_id = a.ma_sessionId
-                        AND a.ma_checkInTime >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                    LEFT JOIN master_attendance a ON s.ms_id = a.ma_sessionid
+                        AND a.ma_checkintime >= DATE_SUB(NOW(), INTERVAL 30 DAY)
                     WHERE s.ms_status = 'ACTIVE'
                     GROUP BY s.ms_id, ms_name, ms_type, ms_capacity
                     ORDER BY totalAttendance DESC
@@ -1013,39 +1014,39 @@ class AdminController {
                 memberEngagement = await mysql.Query(`
                     SELECT
                         u.mu_id as memberId,
-                        CONCAT(u.mu_firstName, ' ', u.mu_lastName) as memberName,
+                        CONCAT(u.mu_firstname, ' ', u.mu_lastname) as memberName,
                         u.mu_email as email,
                         COALESCE(visitCount.visits, 0) as totalVisits,
                         COALESCE(paymentCount.payments, 0) as totalPayments,
                         COALESCE(revenueSum.revenue, 0) as totalRevenue,
-                        DATEDIFF(NOW(), MAX(a.ma_checkInTime)) as daysSinceLastVisit,
+                        DATEDIFF(NOW(), MAX(a.ma_checkintime)) as daysSinceLastVisit,
                         CASE
                             WHEN COALESCE(visitCount.visits, 0) >= 20 THEN 'High'
                             WHEN COALESCE(visitCount.visits, 0) >= 10 THEN 'Medium'
                             ELSE 'Low'
                         END as engagementLevel
                     FROM master_user u
-                    LEFT JOIN master_attendance a ON u.mu_id = a.ma_userId
+                    LEFT JOIN master_attendance a ON u.mu_id = a.ma_userid
                     LEFT JOIN (
-                        SELECT ma_userId, COUNT(*) as visits
+                        SELECT ma_userid, COUNT(*) as visits
                         FROM master_attendance
-                        WHERE ma_checkInTime >= DATE_SUB(NOW(), INTERVAL 90 DAY)
-                        GROUP BY ma_userId
-                    ) visitCount ON u.mu_id = visitCount.ma_userId
+                        WHERE ma_checkintime >= DATE_SUB(NOW(), INTERVAL 90 DAY)
+                        GROUP BY ma_userid
+                    ) visitCount ON u.mu_id = visitCount.ma_userid
                     LEFT JOIN (
-                        SELECT mp_userId, COUNT(*) as payments
+                        SELECT mp_userid, COUNT(*) as payments
                         FROM master_payment
                         WHERE mp_status = 'PAID'
-                        GROUP BY mp_userId
-                    ) paymentCount ON u.mu_id = paymentCount.mp_userId
+                        GROUP BY mp_userid
+                    ) paymentCount ON u.mu_id = paymentCount.mp_userid
                     LEFT JOIN (
-                        SELECT mp_userId, SUM(mp_amount) as revenue
+                        SELECT mp_userid, SUM(mp_amount) as revenue
                         FROM master_payment
                         WHERE mp_status = 'PAID'
-                        GROUP BY mp_userId
-                    ) revenueSum ON u.mu_id = revenueSum.mp_userId
+                        GROUP BY mp_userid
+                    ) revenueSum ON u.mu_id = revenueSum.mp_userid
                     WHERE u.mu_status = 'ACTIVE'
-                    GROUP BY u.mu_id, u.mu_firstName, u.mu_lastName, u.mu_email,
+                    GROUP BY u.mu_id, u.mu_firstname, u.mu_lastname, u.mu_email,
                              visitCount.visits, paymentCount.payments, revenueSum.revenue
                     ORDER BY totalVisits DESC, totalRevenue DESC
                     LIMIT 50

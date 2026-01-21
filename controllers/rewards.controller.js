@@ -19,9 +19,9 @@ class RewardsController {
             const userId = req.user.id
 
             const sql =`
-            SELECT COALESCE(SUM(mrp_pointsAdded), 0) AS totalRewardPoints
+            SELECT COALESCE(SUM(mrp_pointsadded), 0) AS totalRewardPoints
             FROM master_reward_point mrp
-            WHERE mrp.mrp_userId = ?
+            WHERE mrp.mrp_userid = ?
             AND mrp_status = 'ACTIVE'`;
 
             const totalResult = await mysql.Query(sql, [userId]);
@@ -30,19 +30,19 @@ class RewardsController {
             const sqlHistory =`
             SELECT
                 mrp.mrp_id,
-                mrp.mrp_pointsAdded,
+                mrp.mrp_pointsadded,
                 mrp.mrp_status,
                 mrp.mrp_source,
-                mrp.mrp_dateEarned,
+                mrp.mrp_dateearned,
                 ma.ma_duration,
                 mv.mv_code,
-                CONCAT(mu.mu_firstName, " ", mu.mu_lastName) AS memberName
+                CONCAT(mu.mu_firstname, " ", mu.mu_lastname) AS memberName
             FROM master_reward_point mrp
-            LEFT JOIN master_attendance ma ON mrp.mrp_attendanceId = ma.ma_id
-            LEFT JOIN master_voucher mv ON mrp.mrp_voucherId = mv.mv_id
-            LEFT JOIN master_user mu ON mrp.mrp_userId = mu.mu_id
-            WHERE mrp.mrp_userId = ?
-            ORDER BY mrp_dateEarned DESC LIMIT 10`;
+            LEFT JOIN master_attendance ma ON mrp.mrp_attendanceid = ma.ma_id
+            LEFT JOIN master_voucher mv ON mrp.mrp_voucherid = mv.mv_id
+            LEFT JOIN master_user mu ON mrp.mrp_userid = mu.mu_id
+            WHERE mrp.mrp_userid = ?
+            ORDER BY mrp_dateearned DESC LIMIT 10`;
 
             const historyResult = await mysql.Query(sqlHistory, [req.user.id]);
 
@@ -76,15 +76,15 @@ class RewardsController {
 
             const sql =`
             SELECT
-                mrp.mrp_userId,
-                CONCAT(mu.mu_firstName, " ", mu.mu_lastName) AS memberName,
-                COALESCE(SUM(mrp.mrp_pointsAdded), 0) AS totalPoints,
+                mrp.mrp_userid,
+                CONCAT(mu.mu_firstname, " ", mu.mu_lastname) AS memberName,
+                COALESCE(SUM(mrp.mrp_pointsadded), 0) AS totalPoints,
                 COUNT(mrp.mrp_id) AS transactions,
-                MAX(mrp.mrp_dateEarned) AS lastActivity
+                MAX(mrp.mrp_dateearned) AS lastActivity
             FROM master_reward_point mrp
-            LEFT JOIN master_user mu ON mrp.mrp_userId = mu.mu_id
+            LEFT JOIN master_user mu ON mrp.mrp_userid = mu.mu_id
             WHERE mrp.mrp_status = 'ACTIVE'
-            GROUP BY mrp.mrp_userId
+            GROUP BY mrp.mrp_userid
             ORDER BY totalPoints DESC`;
 
             const result = await mysql.Query(sql);
@@ -124,8 +124,8 @@ class RewardsController {
             // CHECK ATTENDANCE + POINTS
             const attendance = await mysql.Query(`
                 SELECT
-                    ma_userId,
-                    ma_pointsEarned
+                    ma_userid,
+                    ma_pointsearned
                 FROM master_attendance
                 WHERE ma_id = ?
                 AND ma_checkout IS NOT NULL
@@ -137,9 +137,9 @@ class RewardsController {
                 });
             }
 
-            const { userId, ma_pointsEarned } = attendance[0];
+            const { ma_userid: attendanceUserId, ma_pointsearned } = attendance[0];
 
-            if(!ma_pointsEarned || ma_pointsEarned <= 0) {
+            if(!ma_pointsearned || ma_pointsearned <= 0) {
                 return res.status(400).json({
                     message: "No points earned from this attendance"
                 });
@@ -148,7 +148,7 @@ class RewardsController {
             // CHECK IF ALREADY CONVERTED
             const alreadyConverted = await mysql.Query(`
                 SELECT 1 FROM master_reward_point
-                WHERE mrp_attendanceId = ?`, [ma_id]);
+                WHERE mrp_attendanceid = ?`, [ma_id]);
 
             if (alreadyConverted.length > 0) {
                 return res.status(409).json({
@@ -159,20 +159,20 @@ class RewardsController {
             // INSERT REWARD POINT
             const sql =`
             INSERT INTO master_reward_point
-                (mrp_userId,
-                mrp_attendanceId,
-                mrp_pointsAdded,
+                (mrp_userid,
+                mrp_attendanceid,
+                mrp_pointsadded,
                 mrp_source)
             VALUES (?, ?, ?, 'ATTENDANCE')`;
 
-            const result = await mysql.Query(sql, [userId, ma_id, ma_pointsEarned]);
+            const result = await mysql.Query(sql, [attendanceUserId, ma_id, ma_pointsearned]);
 
             res.status(201).json({
                 message: "Attendance points converted successfully",
                 data: {
                     ma_id,
-                    userId,
-                    pointsConverted: ma_pointsEarned,
+                    userId: attendanceUserId,
+                    pointsConverted: ma_pointsearned,
                     rewardId: result.insertId
                 }
             });
@@ -209,9 +209,9 @@ class RewardsController {
 
             // CHECK USER POINT BALANCE
             const pointsCheck = await mysql.Query(`
-                SELECT COALESCE(SUM(mrp_pointsAdded), 0) AS totalPoints
+                SELECT COALESCE(SUM(mrp_pointsadded), 0) AS totalPoints
                 FROM master_reward_point
-                WHERE mrp_userId = ?
+                WHERE mrp_userid = ?
                 AND mrp_status = 'ACTIVE'`, [userId]);
 
             const userPoints = pointsCheck[0].totalPoints;
@@ -220,10 +220,10 @@ class RewardsController {
             const voucher = await mysql.Query(`
                 SELECT
                     mv_code,
-                    mv_pointsRequired,
+                    mv_pointsrequired,
                     mv_status,
-                    mv_maxUses,
-                    mv_useCount
+                    mv_maxuses,
+                    mv_usecount
                 FROM master_voucher
                 WHERE mv_id = ?`, [voucherId]);
 
@@ -234,8 +234,8 @@ class RewardsController {
                 });
             }
 
-            const { mv_code, mv_pointsRequired, mv_status,
-                mv_maxUses, mv_useCount } = voucher[0];
+            const { mv_code, mv_pointsrequired, mv_status,
+                mv_maxuses, mv_usecount } = voucher[0];
 
 
             // VOUCHER VALIDATIONS
@@ -245,15 +245,15 @@ class RewardsController {
                 });
             }
 
-            if (mv_useCount >= mv_maxUses) {
+            if (mv_usecount >= mv_maxuses) {
                 return res.status(400).json({
                     message: "Maximum redemption reached"
                 });
             }
 
-            if (userPoints < mv_pointsRequired) {
+            if (userPoints < mv_pointsrequired) {
                 return res.status(400).json({
-                    message: `Need ${mv_pointsRequired} points. You have ${userPoints}.`
+                    message: `Need ${mv_pointsrequired} points. You have ${userPoints}.`
                 });
             }
 
@@ -262,16 +262,16 @@ class RewardsController {
                 UPDATE master_reward_point
                 SET
                     mrp_status = 'REDEEMED'
-                WHERE mrp_userId = ?
+                WHERE mrp_userid = ?
                 AND mrp_status = 'ACTIVE'
-                LIMIT ?`, [userId, mv_pointsRequired]);
+                LIMIT ?`, [userId, mv_pointsrequired]);
 
             // CLAIM
             const voucherResult = await mysql.Query(`
                 UPDATE master_voucher
                 SET
-                    mv_useCount = mv_useCount + 1,
-                    mv_userId = ?
+                    mv_usecount = mv_usecount + 1,
+                    mv_userid = ?
                 WHERE mv_id = ?`, [userId, voucherId]);
 
             res.status(200).json({
@@ -279,8 +279,8 @@ class RewardsController {
                 data: {
                     voucherId,
                     voucherCode: mv_code,
-                    pointsSpent: mv_pointsRequired,
-                    remainingPoints: userPoints - mv_pointsRequired
+                    pointsSpent: mv_pointsrequired,
+                    remainingPoints: userPoints - mv_pointsrequired
                 }
             });
 

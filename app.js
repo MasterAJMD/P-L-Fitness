@@ -87,7 +87,7 @@ cron.schedule('0 0 * * *', async () => {
   try {
     await mysql.Query(`
       UPDATE master_attendance
-      SET ma_pointsEarned = 0
+      SET ma_pointsearned = 0
       WHERE ma_checkout >= DATE_SUB(NOW(), INTERVAL 1 DAY)`);
     console.log("Daily points reset");
   } catch (error) {
@@ -100,7 +100,7 @@ cron.schedule('0 0 * * 0', async ()=> {
   try {
     await mysql.Query(`
       UPDATE master_attendance
-      SET ma_pointsEarned = 0
+      SET ma_pointsearned = 0
       WHERE ma_checkout >= DATE_SUB(NOW(), INTERVAL 7 DAY)`);
     console.log("Weekly points reset");
   } catch (error) {

@@ -91,11 +91,10 @@ class AuthController {
                     mu_email,
                     mu_firstname,
                     mu_lastname,
-                    mu_phone,
+                    mu_phonenumber,
                     mu_role,
-                    mu_status,
-                    mu_datecreated
-                ) VALUES (?, ?, ?, ?, ?, ?, 'MEMBER', 'ACTIVE', NOW())
+                    mu_status
+                ) VALUES (?, ?, ?, ?, ?, ?, 'MEMBER', 'ACTIVE')
             `;
 
             await mysql.Query(insertSql, [

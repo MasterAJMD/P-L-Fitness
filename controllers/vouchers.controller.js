@@ -16,19 +16,19 @@ class VouchersController {
                 mv.mv_id,
                 mv.mv_code,
                 mv.mv_description,
-                mv.mv_discountType,
+                mv.mv_discounttype,
                 mv.mv_value,
-                mv.mv_pointsRequired,
-                mv.mv_minSpend,
-                mv.mv_maxUses,
-                mv.mv_useCount,
-                mv.mv_validFrom,
-                mv.mv_validUntil,
+                mv.mv_pointsrequired,
+                mv.mv_minspend,
+                mv.mv_maxuses,
+                mv.mv_usecount,
+                mv.mv_validfrom,
+                mv.mv_validuntil,
                 mv.mv_status,
-                mv.mv_createdAt,
-                CONCAT(mu.mu_firstName, ' ', mu.mu_lastName) as usedByName
+                mv.mv_createdat,
+                CONCAT(mu.mu_firstname, ' ', mu.mu_lastname) as usedByName
             FROM master_voucher mv
-            LEFT JOIN master_user mu ON mv.mv_userId = mu.mu_id
+            LEFT JOIN master_user mu ON mv.mv_userid = mu.mu_id
             -- WHERE mv_status != 'DEACTIVATED' -- delete to see deleted status
             ORDER BY mv.mv_id DESC`;
 
@@ -73,13 +73,13 @@ class VouchersController {
             INSERT INTO master_voucher
                 (mv_code,
                 mv_description,
-                mv_discountType,
+                mv_discounttype,
                 mv_value,
-                mv_minSpend,
-                mv_maxUses,
-                mv_useCount,
-                mv_validFrom,
-                mv_validUntil,
+                mv_minspend,
+                mv_maxuses,
+                mv_usecount,
+                mv_validfrom,
+                mv_validuntil,
                 mv_status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
@@ -147,13 +147,13 @@ class VouchersController {
             SET
                 mv_code = ?,
                 mv_description = ?,
-                mv_discountType = ?,
+                mv_discounttype = ?,
                 mv_value = ?,
-                mv_minSpend = ?,
-                mv_maxUses = ?,
-                mv_useCount = ?,
-                mv_validFrom = ?,
-                mv_validUntil = ?,
+                mv_minspend = ?,
+                mv_maxuses = ?,
+                mv_usecount = ?,
+                mv_validfrom = ?,
+                mv_validuntil = ?,
                 mv_status = ?
             WHERE mv_id = ?`;
 
@@ -213,12 +213,12 @@ class VouchersController {
             const [voucher] = await mysql.Query(`
                 SELECT
                     mv_id,
-                    mv_maxUses,
-                    mv_useCount,
+                    mv_maxuses,
+                    mv_usecount,
                     mv_status,
-                    mv_validFrom,
-                    mv_validUntil,
-                    mv_userId,
+                    mv_validfrom,
+                    mv_validuntil,
+                    mv_userid,
                     mv_code
                 FROM master_voucher
                 WHERE mv_id = ?
@@ -241,20 +241,20 @@ class VouchersController {
                 });
             }
 
-            if (voucher.mv_useCount >= (voucher.mv_maxUses || 99999)) {
+            if (voucher.mv_usecount >= (voucher.mv_maxuses || 99999)) {
                 return res.status(400).json({
                     message: "Maximum uses reached"
                 });
             }
 
-            if (today < voucher.mv_validFrom || today > voucher.mv_validUntil) {
+            if (today < voucher.mv_validfrom || today > voucher.mv_validuntil) {
                 return res.status(400).json({
-                    message: `Voucher valid ${voucher.mv_validFrom} to ${voucher.mv_validUntil}`
+                    message: `Voucher valid ${voucher.mv_validfrom} to ${voucher.mv_validuntil}`
                 });
             }
 
             // PREVENT SAME USER DOUBLE REDEMPTION
-            if (voucher.mv_userId === memberId) {
+            if (voucher.mv_userid === memberId) {
                 return res.status(400).json({
                     message: "You already used this voucher"
                 });
@@ -264,12 +264,12 @@ class VouchersController {
             const result = await mysql.Query(`
                 UPDATE master_voucher
                 SET
-                    mv_useCount = mv_useCount + 1,
-                    mv_userId = ?
+                    mv_usecount = mv_usecount + 1,
+                    mv_userid = ?
                 WHERE mv_id = ?
                 AND mv_status = 'ACTIVE'
-                AND COALESCE(mv_maxUses, 99999) > mv_useCount
-                AND ? BETWEEN mv_validFrom and mv_validUntil`, [memberId, id, today]);
+                AND COALESCE(mv_maxuses, 99999) > mv_usecount
+                AND ? BETWEEN mv_validfrom and mv_validuntil`, [memberId, id, today]);
 
             if (result.affectedRows === 0) {
                 return res.status(409).json({
@@ -281,7 +281,7 @@ class VouchersController {
                 message: "Voucher redeemed successfully",
                 details: {
                     code: voucher.mv_code || "N/A",
-                    remainingUses: (voucher.mv_maxUses || "Unlimited") - (voucher.mv_useCount + 1),
+                    remainingUses: (voucher.mv_maxuses || "Unlimited") - (voucher.mv_usecount + 1),
                     redeemedBy: memberId
                 }
             });
@@ -317,8 +317,8 @@ class VouchersController {
             const result = await mysql.Query(`
                 UPDATE master_voucher
                 SET
-                    mv_useCount = 0,
-                    mv_userId = NULL
+                    mv_usecount = 0,
+                    mv_userid = NULL
                 WHERE mv_id = ?`, [voucherId]);
 
             if (result.affectedRows === 0) {

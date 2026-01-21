@@ -64,22 +64,22 @@ class AccessLogController {
             }
 
             if (userId) {
-                whereConditions.push('mal_userId = ?');
+                whereConditions.push('mal_userid = ?');
                 params.push(userId);
             }
 
             if (startDate) {
-                whereConditions.push('mal_createdAt >= ?');
+                whereConditions.push('mal_createdat >= ?');
                 params.push(startDate);
             }
 
             if (endDate) {
-                whereConditions.push('mal_createdAt <= ?');
+                whereConditions.push('mal_createdat <= ?');
                 params.push(endDate);
             }
 
             if (search) {
-                whereConditions.push('(mal_username LIKE ? OR mal_endpoint LIKE ? OR mal_responseMessage LIKE ?)');
+                whereConditions.push('(mal_username LIKE ? OR mal_endpoint LIKE ? OR mal_responsemessage LIKE ?)');
                 const searchPattern = `%${search}%`;
                 params.push(searchPattern, searchPattern, searchPattern);
             }
@@ -101,25 +101,25 @@ class AccessLogController {
             const sql = `
                 SELECT
                     mal_id as id,
-                    mal_userId as userId,
+                    mal_userid as userId,
                     mal_username as username,
                     mal_action as action,
-                    mal_resourceType as resourceType,
-                    mal_resourceId as resourceId,
+                    mal_resourcetype as resourceType,
+                    mal_resourceid as resourceId,
                     mal_method as method,
                     mal_endpoint as endpoint,
-                    mal_statusCode as statusCode,
-                    mal_responseTime as responseTime,
-                    mal_ipAddress as ipAddress,
-                    mal_userAgent as userAgent,
-                    mal_requestBody as requestBody,
-                    mal_responseMessage as responseMessage,
+                    mal_statuscode as statusCode,
+                    mal_responsetime as responseTime,
+                    mal_ipaddress as ipAddress,
+                    mal_useragent as userAgent,
+                    mal_requestbody as requestBody,
+                    mal_responsemessage as responseMessage,
                     mal_severity as severity,
                     mal_category as category,
-                    mal_createdAt as createdAt
+                    mal_createdat as createdAt
                 FROM master_access_log
                 ${whereClause}
-                ORDER BY mal_createdAt DESC
+                ORDER BY mal_createdat DESC
                 LIMIT ? OFFSET ?
             `;
 
@@ -186,19 +186,19 @@ class AccessLogController {
             let timeCondition = '';
             switch (period) {
                 case '1h':
-                    timeCondition = 'mal_createdAt >= DATE_SUB(NOW(), INTERVAL 1 HOUR)';
+                    timeCondition = 'mal_createdat >= DATE_SUB(NOW(), INTERVAL 1 HOUR)';
                     break;
                 case '24h':
-                    timeCondition = 'mal_createdAt >= DATE_SUB(NOW(), INTERVAL 24 HOUR)';
+                    timeCondition = 'mal_createdat >= DATE_SUB(NOW(), INTERVAL 24 HOUR)';
                     break;
                 case '7d':
-                    timeCondition = 'mal_createdAt >= DATE_SUB(NOW(), INTERVAL 7 DAY)';
+                    timeCondition = 'mal_createdat >= DATE_SUB(NOW(), INTERVAL 7 DAY)';
                     break;
                 case '30d':
-                    timeCondition = 'mal_createdAt >= DATE_SUB(NOW(), INTERVAL 30 DAY)';
+                    timeCondition = 'mal_createdat >= DATE_SUB(NOW(), INTERVAL 30 DAY)';
                     break;
                 default:
-                    timeCondition = 'mal_createdAt >= DATE_SUB(NOW(), INTERVAL 24 HOUR)';
+                    timeCondition = 'mal_createdat >= DATE_SUB(NOW(), INTERVAL 24 HOUR)';
             }
 
             // Total requests
@@ -212,10 +212,10 @@ class AccessLogController {
             const statusBreakdown = await mysql.Query(`
                 SELECT
                     CASE
-                        WHEN mal_statusCode >= 500 THEN '5xx Server Errors'
-                        WHEN mal_statusCode >= 400 THEN '4xx Client Errors'
-                        WHEN mal_statusCode >= 300 THEN '3xx Redirects'
-                        WHEN mal_statusCode >= 200 THEN '2xx Success'
+                        WHEN mal_statuscode >= 500 THEN '5xx Server Errors'
+                        WHEN mal_statuscode >= 400 THEN '4xx Client Errors'
+                        WHEN mal_statuscode >= 300 THEN '3xx Redirects'
+                        WHEN mal_statuscode >= 200 THEN '2xx Success'
                         ELSE 'Other'
                     END as statusCategory,
                     COUNT(*) as count
@@ -248,14 +248,14 @@ class AccessLogController {
             // Top users by activity
             const topUsers = await mysql.Query(`
                 SELECT
-                    mal_userId as userId,
+                    mal_userid as userId,
                     mal_username as username,
                     COUNT(*) as requestCount,
-                    AVG(mal_responseTime) as avgResponseTime
+                    AVG(mal_responsetime) as avgResponseTime
                 FROM master_access_log
                 WHERE ${timeCondition}
-                AND mal_userId IS NOT NULL
-                GROUP BY mal_userId, mal_username
+                AND mal_userid IS NOT NULL
+                GROUP BY mal_userid, mal_username
                 ORDER BY requestCount DESC
                 LIMIT 10
             `);
@@ -275,27 +275,27 @@ class AccessLogController {
             // Average response time trend
             const responseTimeTrend = await mysql.Query(`
                 SELECT
-                    DATE_FORMAT(mal_createdAt, '%Y-%m-%d %H:00:00') as hour,
-                    AVG(mal_responseTime) as avgResponseTime,
-                    MAX(mal_responseTime) as maxResponseTime,
-                    MIN(mal_responseTime) as minResponseTime,
+                    DATE_FORMAT(mal_createdat, '%Y-%m-%d %H:00:00') as hour,
+                    AVG(mal_responsetime) as avgResponseTime,
+                    MAX(mal_responsetime) as maxResponseTime,
+                    MIN(mal_responsetime) as minResponseTime,
                     COUNT(*) as requestCount
                 FROM master_access_log
                 WHERE ${timeCondition}
-                GROUP BY DATE_FORMAT(mal_createdAt, '%Y-%m-%d %H:00:00')
+                GROUP BY DATE_FORMAT(mal_createdat, '%Y-%m-%d %H:00:00')
                 ORDER BY hour
             `);
 
             // Error rate over time
             const errorRateTrend = await mysql.Query(`
                 SELECT
-                    DATE_FORMAT(mal_createdAt, '%Y-%m-%d %H:00:00') as hour,
+                    DATE_FORMAT(mal_createdat, '%Y-%m-%d %H:00:00') as hour,
                     COUNT(*) as totalRequests,
-                    SUM(CASE WHEN mal_statusCode >= 400 THEN 1 ELSE 0 END) as errorCount,
-                    ROUND(SUM(CASE WHEN mal_statusCode >= 400 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as errorRate
+                    SUM(CASE WHEN mal_statuscode >= 400 THEN 1 ELSE 0 END) as errorCount,
+                    ROUND(SUM(CASE WHEN mal_statuscode >= 400 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as errorRate
                 FROM master_access_log
                 WHERE ${timeCondition}
-                GROUP BY DATE_FORMAT(mal_createdAt, '%Y-%m-%d %H:00:00')
+                GROUP BY DATE_FORMAT(mal_createdat, '%Y-%m-%d %H:00:00')
                 ORDER BY hour
             `);
 
@@ -306,26 +306,26 @@ class AccessLogController {
                     mal_username as username,
                     mal_action as action,
                     mal_endpoint as endpoint,
-                    mal_statusCode as statusCode,
-                    mal_responseMessage as message,
+                    mal_statuscode as statusCode,
+                    mal_responsemessage as message,
                     mal_severity as severity,
-                    mal_createdAt as createdAt
+                    mal_createdat as createdAt
                 FROM master_access_log
                 WHERE ${timeCondition}
-                AND mal_statusCode >= 400
-                ORDER BY mal_createdAt DESC
+                AND mal_statuscode >= 400
+                ORDER BY mal_createdat DESC
                 LIMIT 20
             `);
 
             // Peak hour analysis
             const peakHours = await mysql.Query(`
                 SELECT
-                    HOUR(mal_createdAt) as hour,
+                    HOUR(mal_createdat) as hour,
                     COUNT(*) as requestCount,
-                    AVG(mal_responseTime) as avgResponseTime
+                    AVG(mal_responsetime) as avgResponseTime
                 FROM master_access_log
                 WHERE ${timeCondition}
-                GROUP BY HOUR(mal_createdAt)
+                GROUP BY HOUR(mal_createdat)
                 ORDER BY hour
             `);
 
@@ -335,7 +335,7 @@ class AccessLogController {
                     mal_endpoint as endpoint,
                     mal_method as method,
                     COUNT(*) as count,
-                    AVG(mal_responseTime) as avgResponseTime
+                    AVG(mal_responsetime) as avgResponseTime
                 FROM master_access_log
                 WHERE ${timeCondition}
                 GROUP BY mal_endpoint, mal_method
@@ -388,16 +388,16 @@ class AccessLogController {
                 SELECT
                     mal_id as id,
                     mal_action as action,
-                    mal_resourceType as resourceType,
+                    mal_resourcetype as resourceType,
                     mal_endpoint as endpoint,
-                    mal_statusCode as statusCode,
-                    mal_responseTime as responseTime,
-                    mal_ipAddress as ipAddress,
+                    mal_statuscode as statusCode,
+                    mal_responsetime as responseTime,
+                    mal_ipaddress as ipAddress,
                     mal_category as category,
-                    mal_createdAt as createdAt
+                    mal_createdat as createdAt
                 FROM master_access_log
-                WHERE mal_userId = ?
-                ORDER BY mal_createdAt DESC
+                WHERE mal_userid = ?
+                ORDER BY mal_createdat DESC
                 LIMIT ?
             `;
 
@@ -430,7 +430,7 @@ class AccessLogController {
 
             const sql = `
                 DELETE FROM master_access_log
-                WHERE mal_createdAt < DATE_SUB(NOW(), INTERVAL ? DAY)
+                WHERE mal_createdat < DATE_SUB(NOW(), INTERVAL ? DAY)
             `;
 
             const result = await mysql.Query(sql, [days]);
