@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { LoyaltyCard } from "./loyalty-card";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Badge } from "../ui/badge";
@@ -18,21 +17,85 @@ import { useApi } from "../../hooks/useApi";
 import api from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 
+// Helper functions - defined before component to avoid hoisting issues
+function calculateStreak(attendance: any[]): number {
+  if (!attendance || attendance.length === 0) return 0;
+  // Sort by date descending
+  const sorted = attendance
+    .filter(a => a.checkout)
+    .sort((a, b) => new Date(b.checkout).getTime() - new Date(a.checkout).getTime());
+
+  let streak = 0;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (let i = 0; i < sorted.length; i++) {
+    const checkDate = new Date(sorted[i].checkout);
+    checkDate.setHours(0, 0, 0, 0);
+    const expectedDate = new Date(today);
+    expectedDate.setDate(today.getDate() - i);
+
+    if (checkDate.getTime() === expectedDate.getTime()) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+}
+
+function calculateMemberSince(joinDate: string): string {
+  if (!joinDate) return 'N/A';
+  const join = new Date(joinDate);
+  const now = new Date();
+  const months = (now.getFullYear() - join.getFullYear()) * 12 + (now.getMonth() - join.getMonth());
+  return `${months} month${months !== 1 ? 's' : ''}`;
+}
+
+function formatDate(dateString: string): string {
+  if (!dateString) return 'N/A';
+  return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 export function MyCard() {
   const { user } = useAuth();
-  const { data: profile, loading: profileLoading } = useApi(() => api.getProfile());
-  const { data: pointsData, loading: pointsLoading } = useApi(() => api.getPoints());
-  const { data: attendanceData, loading: attendanceLoading } = useApi(() => api.loadAttendance());
+  const { data: profile, loading: profileLoading, error: profileError } = useApi(() => api.getProfile());
+  const { data: pointsData, loading: pointsLoading, error: pointsError } = useApi(() => api.getPoints());
+  const { data: attendanceData, loading: attendanceLoading, error: attendanceError } = useApi(() => api.loadAttendance());
+
+  const isLoading = profileLoading || pointsLoading || attendanceLoading;
+  const hasError = profileError || pointsError || attendanceError;
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Loading membership card...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if all API calls failed or user not authenticated
+  if (hasError && !profile && !user) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-12">
+          <h2 className="text-xl font-bold mb-2">Unable to Load Card</h2>
+          <p className="text-muted-foreground mb-4">Please log in to view your membership card.</p>
+          <Button variant="outline" onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // Calculate stats from attendance data
   const totalVisits = attendanceData?.length || 0;
   const currentStreak = calculateStreak(attendanceData || []);
-
-  // Format dates from backend data
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
 
   const userData = {
     memberName: profile?.name || user?.username || "Member",
@@ -46,52 +109,6 @@ export function MyCard() {
     nextBilling: formatDate(profile?.nextBilling || ""),
     autoRenew: profile?.autoRenew || false
   };
-
-  if (profileLoading || pointsLoading || attendanceLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Loading membership card...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Helper functions
-  function calculateStreak(attendance: any[]): number {
-    if (!attendance || attendance.length === 0) return 0;
-    // Sort by date descending
-    const sorted = attendance
-      .filter(a => a.checkout)
-      .sort((a, b) => new Date(b.checkout).getTime() - new Date(a.checkout).getTime());
-    
-    let streak = 0;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    for (let i = 0; i < sorted.length; i++) {
-      const checkDate = new Date(sorted[i].checkout);
-      checkDate.setHours(0, 0, 0, 0);
-      const expectedDate = new Date(today);
-      expectedDate.setDate(today.getDate() - i);
-
-      if (checkDate.getTime() === expectedDate.getTime()) {
-        streak++;
-      } else {
-        break;
-      }
-    }
-
-    return streak;
-  }
-
-  function calculateMemberSince(joinDate: string): string {
-    if (!joinDate) return 'N/A';
-    const join = new Date(joinDate);
-    const now = new Date();
-    const months = (now.getFullYear() - join.getFullYear()) * 12 + (now.getMonth() - join.getMonth());
-    return `${months} month${months !== 1 ? 's' : ''}`;
-  }
 
   return (
     <div className="space-y-6">
