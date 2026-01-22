@@ -82,19 +82,19 @@ const accessLogger = async (req, res, next) => {
             // Insert log entry
             const sql = `
                 INSERT INTO master_access_log (
-                    mal_userid,
+                    mal_userId,
                     mal_username,
                     mal_action,
-                    mal_resourcetype,
-                    mal_resourceid,
+                    mal_resourceType,
+                    mal_resourceId,
                     mal_method,
                     mal_endpoint,
-                    mal_statuscode,
-                    mal_responsetime,
-                    mal_ipaddress,
-                    mal_useragent,
-                    mal_requestbody,
-                    mal_responsemessage,
+                    mal_statusCode,
+                    mal_responseTime,
+                    mal_ipAddress,
+                    mal_userAgent,
+                    mal_requestBody,
+                    mal_responseMessage,
                     mal_severity,
                     mal_category
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)

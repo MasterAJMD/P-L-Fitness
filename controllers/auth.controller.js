@@ -89,9 +89,9 @@ class AuthController {
                     mu_username,
                     mu_password,
                     mu_email,
-                    mu_firstname,
-                    mu_lastname,
-                    mu_phonenumber,
+                    mu_firstName,
+                    mu_lastName,
+                    mu_phoneNumber,
                     mu_role,
                     mu_status
                 ) VALUES (?, ?, ?, ?, ?, ?, 'MEMBER', 'ACTIVE')

@@ -22,9 +22,9 @@ class UserController {
             const user = await mysql.Query(`
                 SELECT
                     mu_username,
-                    mu_firstname,
-                    mu_lastname,
-                    mu_phonenumber,
+                    mu_firstName,
+                    mu_lastName,
+                    mu_phoneNumber,
                     mu_email,
                     mu_role
                 FROM master_user
@@ -95,10 +95,10 @@ class UserController {
             const sql =`
             UPDATE master_user
             SET
-                mu_phonenumber = ?,
+                mu_phoneNumber = ?,
                 mu_email = ?,
                 mu_password = ?,
-                mu_updatedbyid = ?
+                mu_updatedById = ?
             WHERE mu_id = ?`;
 
             const result = await mysql.Query(sql, [phoneNumber,

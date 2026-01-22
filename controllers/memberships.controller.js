@@ -13,20 +13,20 @@ class MembershipController {
             const sql =`
             SELECT
                 mm.mm_id,
-                mm.mm_userid,
-                CONCAT(mu.mu_firstname, ' ', mu.mu_lastname) AS memberName,
-                mm.mm_startdate,
-                mm.mm_enddate,
-                mm.mm_plantype,
+                mm.mm_userId,
+                CONCAT(mu.mu_firstName, ' ', mu.mu_lastName) AS memberName,
+                mm.mm_startDate,
+                mm.mm_endDate,
+                mm.mm_planType,
                 mm.mm_price,
-                mm.mm_nextduedate,
+                mm.mm_nextDueDate,
                 mm.mm_status,
-                mm.mm_totalpaid
+                mm.mm_totalPaid
             FROM master_membership mm
-            LEFT JOIN master_user mu ON mm.mm_userid = mu.mu_id
+            LEFT JOIN master_user mu ON mm.mm_userId = mu.mu_id
             -- WHERE mm.mm_status != 'DELETED' -- delete this to see 'DELETED' status
             -- AND mu.mu_status != 'DELETED' -- delete this to see 'DELETED' status
-            ORDER BY mm.mm_startdate ASC`;
+            ORDER BY mm.mm_startDate ASC`;
 
             const result = await mysql.Query(sql);
             res.status(200).json({
@@ -65,14 +65,14 @@ class MembershipController {
 
             const sql =`
             INSERT INTO master_membership
-                (mm_userid,
-                mm_startdate,
-                mm_enddate,
-                mm_plantype,
+                (mm_userId,
+                mm_startDate,
+                mm_endDate,
+                mm_planType,
                 mm_price,
-                mm_nextduedate,
+                mm_nextDueDate,
                 mm_status,
-                mm_totalpaid)
+                mm_totalPaid)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 
             const result = await mysql.Query(sql, [userId, startDate, endDate,
@@ -120,7 +120,7 @@ class MembershipController {
 
             // TOTAL PAYMENT CALCULATION
             const current = await mysql.Query(`
-                SELECT mm_totalpaid
+                SELECT mm_totalPaid
                 FROM master_membership
                 WHERE mm_id = ?`, [id]);
             if (!current.length) {
@@ -129,20 +129,20 @@ class MembershipController {
                 });
             }
 
-            const currentTotalPaid = current[0].mm_totalpaid || 0;
+            const currentTotalPaid = current[0].mm_totalPaid || 0;
             const additionalPayment = newTotalPaid || price;
             const updatedTotalPaid = currentTotalPaid + additionalPayment;
 
             const sql =`
             UPDATE master_membership
             SET
-                mm_startdate = ?,
-                mm_enddate = ?,
-                mm_plantype = ?,
+                mm_startDate = ?,
+                mm_endDate = ?,
+                mm_planType = ?,
                 mm_price = ?,
-                mm_nextduedate = ?,
+                mm_nextDueDate = ?,
                 mm_status = ?,
-                mm_totalpaid = ?
+                mm_totalPaid = ?
             WHERE mm_id = ?`;
 
             const result = await mysql.Query(sql, [startDate, endDate,
@@ -200,7 +200,7 @@ class MembershipController {
             UPDATE master_membership
             SET
                 mm_status = 'DELETED',
-                mm_plantype = CONCAT('DELETED_', mm_id)
+                mm_planType = CONCAT('DELETED_', mm_id)
             WHERE mm_id = ?`;
 
             const result = await mysql.Query(sql, [id]);

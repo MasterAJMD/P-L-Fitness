@@ -14,14 +14,14 @@ class SessionsController {
             const sql =`
             SELECT
                 ms.ms_id,
-                ms.ms_userid,
-                CONCAT(mu.mu_firstname, ' ', mu.mu_lastname) as coachName,
-                ms.ms_sessionname,
+                ms.ms_userId,
+                CONCAT(mu.mu_firstName, ' ', mu.mu_lastName) as coachName,
+                ms.ms_sessionName,
                 ms.ms_datetime,
                 ms.ms_capacity,
                 ms.ms_status
             FROM master_session ms
-            LEFT JOIN master_user mu ON ms.ms_userid = mu.mu_id
+            LEFT JOIN master_user mu ON ms.ms_userId = mu.mu_id
             -- WHERE mu.mu_status != 'DELETED' -- delete this to see 'DELETED' status
             -- AND mu.mu_status != 'DELETED' -- delete this to see 'DELETED' status
             ORDER BY ms.ms_datetime ASC`;
@@ -63,8 +63,8 @@ class SessionsController {
 
             const sql =`
             INSERT INTO master_session
-                (ms_userid,
-                ms_sessionname,
+                (ms_userId,
+                ms_sessionName,
                 ms_datetime,
                 ms_capacity,
                 ms_status)
@@ -117,7 +117,7 @@ class SessionsController {
             const sql =`
             UPDATE master_session
             SET
-                ms_sessionname = ?,
+                ms_sessionName = ?,
                 ms_datetime = ?,
                 ms_capacity = ?,
                 ms_status = COALESCE(?, ms_status)
